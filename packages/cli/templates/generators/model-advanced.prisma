@@ -1,0 +1,26 @@
+model {{name}} {
+  id          String   @id @default(cuid())
+  {{#if fields.name}}
+  name        String
+  {{/if}}
+  {{#if fields.email}}
+  email       String   @unique
+  {{/if}}
+  {{#if fields.description}}
+  description String?
+  {{/if}}
+  {{#if fields.isActive}}
+  isActive    Boolean  @default(true)
+  {{/if}}
+  {{#if fields.userId}}
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  {{/if}}
+  {{#each customFields}}
+  {{this.name}}{{#if this.optional}}?{{/if}} {{this.type}}{{#if this.default}} @default({{this.default}}){{/if}}
+  {{/each}}
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("{{nameKebab}}")
+}

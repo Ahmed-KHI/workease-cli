@@ -1,0 +1,39 @@
+{
+  "name": "workease-framework",
+  "version": "3.0.0",
+  "description": "WorkEase - A productivity-first framework for building internal tools. Features complete CRUD generation, authentication systems, and professional CLI tools.",
+  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@myframework/cli",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "clean": "rimraf packages/*/dist packages/*/node_modules node_modules"
+  },
+  "keywords": [
+    "framework",
+    "fullstack",
+    "productivity",
+    "crud",
+    "enterprise",
+    "cli",
+    "scaffolding"
+  ],
+  "author": "WorkEase Framework Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/myframework.git"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.45.0",
+    "rimraf": "^5.0.1"
+  }
+}

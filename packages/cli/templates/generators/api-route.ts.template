@@ -1,0 +1,72 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Add your GET logic here
+    const data = { message: 'Hello from {{routeName}} API' };
+    
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Error in {{routeName}} GET:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    // Add your POST logic here
+    console.log('Received data:', body);
+    
+    return NextResponse.json({ 
+      message: '{{routeName}} created successfully',
+      data: body
+    });
+  } catch (error) {
+    console.error('Error in {{routeName}} POST:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    // Add your PUT logic here
+    console.log('Updating data:', body);
+    
+    return NextResponse.json({ 
+      message: '{{routeName}} updated successfully',
+      data: body
+    });
+  } catch (error) {
+    console.error('Error in {{routeName}} PUT:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Add your DELETE logic here
+    
+    return NextResponse.json({ 
+      message: '{{routeName}} deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error in {{routeName}} DELETE:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
