@@ -85,6 +85,6 @@ MIT License - see LICENSE file for details.
 
 ## 🆘 Support
 
-- 📧 Email: support@workease-framework.com
-- 💬 Discord: [Join our community](https://discord.gg/workease)
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/myframework/issues)
+- 📧 Email: m.muhammad.ahmed115@gmail.com
+- 💬 Discord: (https://discord.com/users/1211977466898419776)
+- 🐛 Issues: [GitHub Issues](https://github.com/Ahmed-KHI/myframework/issues)
