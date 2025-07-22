@@ -261,7 +261,11 @@ async function createProjectFromTemplate(projectName, template) {
         ...devDependencies,
         "prisma": "^5.0.0"
       };
-      packageJson.scripts.postinstall = "prisma generate";
+      packageJson.scripts = {
+  ...packageJson.scripts,
+  "db:generate": "prisma generate", 
+  "db:setup": "prisma generate && prisma db push"
+};
       break;
 
     case 'frontend':
@@ -285,7 +289,11 @@ async function createProjectFromTemplate(projectName, template) {
         ...devDependencies,
         "prisma": "^5.0.0"
       };
-      packageJson.scripts.postinstall = "prisma generate";
+      packageJson.scripts = {
+  ...packageJson.scripts,
+  "db:generate": "prisma generate", 
+  "db:setup": "prisma generate && prisma db push"
+};
       break;
 
     case 'dashboard':
