@@ -329,7 +329,7 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 
 <div align="center">
 
-**Made with ❤️ by [Ahmed Khan](https://github.com/Ahmed-KHI)**
+**Made with ❤️ by [Muhammad Ahmed](https://github.com/Ahmed-KHI)**
 
 *Building tools that empower developers to create amazing applications safely and efficiently*
 
