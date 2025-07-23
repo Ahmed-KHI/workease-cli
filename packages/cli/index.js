@@ -1,5 +1,18 @@
 #!/usr/bin/env node
 
+/**
+ * WorkEase CLI - A safe and reliable project generator
+ * 
+ * SAFETY MEASURES IMPLEMENTED:
+ * - No postinstall scripts run Prisma generate during npm install
+ * - Prisma commands only run manually after schema is properly set up
+ * - Installation process validates package.json for unsafe scripts
+ * - Clear separation between dependency installation and database setup
+ * 
+ * This prevents file system corruption that can occur when Prisma
+ * tries to generate without a proper schema during npm install.
+ */
+
 import { Command } from 'commander';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
@@ -15,19 +28,53 @@ const __dirname = path.dirname(__filename);
 
 const program = new Command();
 
+// Safety validation function
+async function validateProjectSafety(projectPath) {
+  try {
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = await fs.readJSON(packageJsonPath);
+      
+      if (packageJson.scripts && packageJson.scripts.postinstall) {
+        if (packageJson.scripts.postinstall.includes('prisma generate')) {
+          console.log(chalk.red('⚠️  DANGER: Unsafe postinstall script detected!'));
+          console.log(chalk.yellow('This could cause file system corruption. Removing unsafe script...'));
+          
+          delete packageJson.scripts.postinstall;
+          await fs.writeJSON(packageJsonPath, packageJson, { spaces: 2 });
+          
+          console.log(chalk.green('✅ Unsafe script removed. Project is now safe.'));
+        }
+      }
+    }
+  } catch (error) {
+    console.log(chalk.yellow('Warning: Could not validate project safety:', error.message));
+  }
+}
+
 console.log(chalk.blue.bold('🚀 WorkEase CLI - Your productivity toolkit!'));
 
 program
   .name('workease')
   .description('CLI tool for WorkEase framework')
-  .version('1.0.0');
+  .version('1.0.0')
+  .option('--dry-run', 'Run in simulation mode (no actual file operations)', false)
+  .option('--verbose', 'Show detailed output for debugging', false);
 
 program
   .command('init')
   .argument('[name]', 'project name')
   .option('-t, --template <template>', 'project template', 'default')
   .description('Initialize a new WorkEase project')
-  .action(async (name, options) => {
+  .action(async (name, options, command) => {
+    const globalOptions = command.parent.opts();
+    const isDryRun = globalOptions.dryRun;
+    const isVerbose = globalOptions.verbose;
+    
+    if (isDryRun) {
+      console.log(chalk.yellow('🧪 DRY RUN MODE - No actual files will be created'));
+    }
+    
     try {
       let projectName = name;
       let template = options.template;
@@ -68,6 +115,13 @@ program
 
       const spinner = ora('Creating new WorkEase project...').start();
       
+      if (isDryRun) {
+        spinner.text = 'DRY RUN: Simulating project creation...';
+        await simulateProjectCreation(projectName, template);
+        spinner.succeed(chalk.yellow('DRY RUN completed - No actual files created'));
+        return;
+      }
+      
       // Check if directory already exists
       if (fs.existsSync(projectName)) {
         spinner.fail(`Directory ${projectName} already exists!`);
@@ -93,10 +147,13 @@ program
       console.log(chalk.white(`   cd ${projectName}`));
       
       if (template === 'fullstack' || template === 'dashboard') {
-        console.log(chalk.white('   npx prisma generate'));
-        console.log(chalk.white('   npx prisma db push'));
+        console.log(chalk.blue('\n🔐 Database Setup (IMPORTANT):'));
+        console.log(chalk.white('   npx prisma generate    # Generate Prisma client'));
+        console.log(chalk.white('   npx prisma db push     # Create database tables'));
+        console.log(chalk.gray('   ⚠️  Always run these AFTER project creation, not during npm install'));
       }
       
+      console.log(chalk.yellow('\n🚀 Start Development:'));
       console.log(chalk.white('   npm run dev'));
       console.log(chalk.gray('\n✨ Happy coding with WorkEase!'));
       
@@ -264,7 +321,8 @@ async function createProjectFromTemplate(projectName, template) {
       packageJson.scripts = {
   ...packageJson.scripts,
   "db:generate": "prisma generate", 
-  "db:setup": "prisma generate && prisma db push"
+  "db:setup": "prisma generate && prisma db push",
+  "db:check": "prisma validate && echo 'Schema is valid'"
 };
       break;
 
@@ -292,7 +350,8 @@ async function createProjectFromTemplate(projectName, template) {
       packageJson.scripts = {
   ...packageJson.scripts,
   "db:generate": "prisma generate", 
-  "db:setup": "prisma generate && prisma db push"
+  "db:setup": "prisma generate && prisma db push",
+  "db:check": "prisma validate && echo 'Schema is valid'"
 };
       break;
 
@@ -317,7 +376,8 @@ async function createProjectFromTemplate(projectName, template) {
   ...packageJson.scripts,
   "db:generate": "prisma generate",
   "db:setup": "prisma generate && prisma db push",
-  "postinstall": "echo 'WorkEase project created successfully!'"
+  "db:check": "prisma validate && echo 'Schema is valid'",
+  "postinstall": "echo '✅ WorkEase dashboard project created successfully! Run: npm run db:setup to initialize database'"
 };
       break;
   }
@@ -1544,8 +1604,172 @@ export { Badge, badgeVariants }`;
 }
 
 async function installDependencies(projectName, template) {
-  // For now, just simulate installation
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  try {
+    const projectPath = path.resolve(projectName);
+    
+    // Read package.json to ensure no unsafe postinstall scripts
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    const packageJson = await fs.readJSON(packageJsonPath);
+    
+    // Safety check: Remove any postinstall scripts that run prisma generate
+    if (packageJson.scripts && packageJson.scripts.postinstall) {
+      if (packageJson.scripts.postinstall.includes('prisma generate')) {
+        console.log(chalk.yellow('⚠️  Removing unsafe postinstall script to prevent file system issues'));
+        delete packageJson.scripts.postinstall;
+        await fs.writeJSON(packageJsonPath, packageJson, { spaces: 2 });
+      }
+    }
+    
+    // Install dependencies using npm
+    console.log(chalk.blue('📦 Installing dependencies...'));
+    
+    await execa('npm', ['install'], {
+      cwd: projectPath,
+      stdio: 'inherit'
+    });
+    
+    console.log(chalk.green('✅ Dependencies installed successfully'));
+    
+  } catch (error) {
+    console.error(chalk.red('❌ Failed to install dependencies:'), error.message);
+    console.log(chalk.yellow('💡 You can manually install dependencies by running: npm install'));
+  }
+}
+
+// Safety command to check existing projects
+program
+  .command('check')
+  .alias('safety')
+  .description('Check current project for safety issues')
+  .action(async () => {
+    console.log(chalk.blue('🔍 Running WorkEase safety check...'));
+    
+    try {
+      await validateProjectSafety(process.cwd());
+      console.log(chalk.green('✅ Project safety check completed'));
+    } catch (error) {
+      console.error(chalk.red('❌ Safety check failed:'), error.message);
+    }
+  });
+
+// Virtual testing command
+program
+  .command('test')
+  .alias('virtual')
+  .description('Run CLI in virtual mode for safe testing')
+  .option('--template <template>', 'Template to test', 'fullstack')
+  .action(async (options) => {
+    console.log(chalk.blue.bold('🧪 Virtual Testing Mode - No Real File Operations'));
+    console.log(chalk.gray('This simulates CLI operations without touching your file system\n'));
+    
+    const testProjectName = 'virtual-test-project';
+    
+    console.log(chalk.yellow('📋 What would happen with real execution:'));
+    console.log(chalk.white(`   Project: ${testProjectName}`));
+    console.log(chalk.white(`   Template: ${options.template}`));
+    
+    // Simulate project creation
+    console.log(chalk.blue('\n🔍 Simulating project creation...'));
+    
+    try {
+      await simulateProjectCreation(testProjectName, options.template);
+      console.log(chalk.green('\n✅ Virtual test completed successfully!'));
+      console.log(chalk.gray('No files were actually created on your system.'));
+    } catch (error) {
+      console.error(chalk.red('❌ Virtual test failed:'), error.message);
+    }
+  });
+
+// Virtual simulation function for safe testing
+async function simulateProjectCreation(projectName, template) {
+  console.log(chalk.blue('📁 Would create directory:'), chalk.white(projectName));
+  
+  // Simulate package.json analysis
+  console.log(chalk.blue('📄 Would generate package.json with scripts:'));
+  
+  const baseScripts = {
+    "dev": "next dev",
+    "build": "next build", 
+    "start": "next start",
+    "lint": "next lint"
+  };
+  
+  let additionalScripts = {};
+  
+  switch (template) {
+    case 'fullstack':
+      additionalScripts = {
+        "db:generate": "prisma generate",
+        "db:setup": "prisma generate && prisma db push",
+        "db:check": "prisma validate && echo 'Schema is valid'"
+      };
+      break;
+    case 'api':
+      additionalScripts = {
+        "db:generate": "prisma generate",
+        "db:setup": "prisma generate && prisma db push", 
+        "db:check": "prisma validate && echo 'Schema is valid'"
+      };
+      break;
+    case 'dashboard':
+      additionalScripts = {
+        "db:generate": "prisma generate",
+        "db:setup": "prisma generate && prisma db push",
+        "db:check": "prisma validate && echo 'Schema is valid'",
+        "postinstall": "echo '✅ WorkEase dashboard project created successfully! Run: npm run db:setup to initialize database'"
+      };
+      break;
+  }
+  
+  const allScripts = { ...baseScripts, ...additionalScripts };
+  
+  Object.entries(allScripts).forEach(([script, command]) => {
+    const isPostinstall = script === 'postinstall';
+    const isSafe = !command.includes('prisma generate') || !isPostinstall;
+    const status = isSafe ? chalk.green('✅ SAFE') : chalk.red('⚠️  POTENTIALLY UNSAFE');
+    
+    console.log(`   ${chalk.cyan(script)}: ${chalk.gray(command)} ${status}`);
+  });
+  
+  // Safety analysis
+  console.log(chalk.blue('\n🔒 Safety Analysis:'));
+  
+  const hasUnsafePostinstall = additionalScripts.postinstall && 
+    additionalScripts.postinstall.includes('prisma generate');
+    
+  if (hasUnsafePostinstall) {
+    console.log(chalk.red('❌ DANGER: postinstall script runs Prisma generate'));
+    console.log(chalk.yellow('   This could cause file system corruption!'));
+  } else {
+    console.log(chalk.green('✅ No unsafe postinstall scripts detected'));
+  }
+  
+  console.log(chalk.blue('\n📦 Would install dependencies:'));
+  console.log(chalk.gray('   - next, react, typescript (base)'));
+  
+  if (['fullstack', 'api', 'dashboard'].includes(template)) {
+    console.log(chalk.gray('   - @prisma/client, prisma (database)'));
+  }
+  
+  if (['fullstack', 'frontend', 'dashboard'].includes(template)) {
+    console.log(chalk.gray('   - tailwindcss, autoprefixer (styling)'));
+  }
+  
+  console.log(chalk.blue('\n📁 Would create file structure:'));
+  console.log(chalk.gray('   ├── src/app/'));
+  console.log(chalk.gray('   ├── src/components/'));
+  console.log(chalk.gray('   ├── src/lib/'));
+  
+  if (['fullstack', 'api', 'dashboard'].includes(template)) {
+    console.log(chalk.gray('   ├── prisma/'));
+  }
+  
+  console.log(chalk.gray('   ├── package.json'));
+  console.log(chalk.gray('   ├── tsconfig.json'));
+  console.log(chalk.gray('   └── README.md'));
+  
+  // Simulate delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
 }
 
 program.parse();
