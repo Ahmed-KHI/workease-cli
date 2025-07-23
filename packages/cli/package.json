@@ -1,6 +1,6 @@
 {
   "name": "workease-cli",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "CLI tool for WorkEase framework - scaffolding and development utilities",
   "main": "index.js",
   "bin": {
@@ -16,7 +16,24 @@
     "scaffolding",
     "framework",
     "workease",
-    "productivity"
+    "productivity",
+    "nextjs",
+    "typescript",
+    "prisma",
+    "tailwind",
+    "react",
+    "project-generator",
+    "boilerplate",
+    "starter-template",
+    "dashboard",
+    "crud",
+    "fullstack",
+    "enterprise",
+    "hr-system",
+    "admin-panel",
+    "safety-first",
+    "virtual-testing",
+    "file-system-safe"
   ],
   "author": "WorkEase Framework Team",
   "license": "MIT",
